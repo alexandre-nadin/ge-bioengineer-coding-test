@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Write an specialization of the VariantReader abstract class that is able to read genomic variants from a VCF file:
   * The name of the new class must be VcfVariantReader
