@@ -21,7 +21,7 @@ Write an specialization of the VariantReader abstract class that is able to read
   * Please, write the code before the "TESTS" section
 """
 from abc import abstractmethod
-
+from variantschema_pb2 import Variant
 
 class VariantReader:
     """
