@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+
+package models;
+
+message Variant {
+  string chromosome = 1;
+  int32 position = 2;
+  string reference = 3;
+  string alternate = 4;
+  string filter = 5;
+  string info = 6;
+  map<string, string> genotypes = 7;
+}
