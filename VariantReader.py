@@ -76,6 +76,49 @@ class VariantReader:
         """
         self._filehandler.close()
 
+class VcfVariantReader(VariantReader):
+
+    def __init__(self, filename: str) -> None:
+        super().__init__(filename)
+        self._firstVariant = None
+        self._headerlines = []
+
+    def pre(self) -> None:
+        """
+        Reads the header and stores it for the header() method, although not necessary for this test.
+        Real use here is to advance the file handler to the first variant.
+        Assumes the VCF is well 
+        """
+        self._readHeader()
+        self._validateHeader()
+
+    def _readHeader(self) -> None:
+        """
+        Stores the header.
+        Assumes the header rigorously precedes the variants.
+        Deals with the first variant to avoid rewinding the filehandler.
+        """
+        while True:
+            line = self._filehandler.readline()
+            if line.startswith('#'):
+                self._headerlines.append(line)
+
+            else:
+                self._firstVariant = line
+                break
+
+    def _validateHeader(self) -> None:
+        """
+        Assumes the header is well formed
+        """
+        pass
+
+    def header(self) -> str:
+        """
+        Returns the VCF header as a string
+        """
+        return ''.join(self._headerlines)
+
 
 """ *******************************************************************************************************************
 ****************************************  TESTS  **********************************************************************
