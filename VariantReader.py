@@ -30,7 +30,8 @@ class VariantReader:
     """
 
     def __init__(self, filename: str) -> None:
-        self._filename = filename
+        self._filename    = filename
+        self._filehandler = None
 
     @abstractmethod
     def pre(self) -> None:
@@ -56,6 +57,20 @@ class VariantReader:
         parsed. Might not be strictly necessary to implement if no post-processing actions are required.
         """
         pass
+
+    def __enter__(self):
+        """
+        Implemented context manager as described by the doc: https://docs.python.org/2/reference/datamodel.html#with-statement-context-managers
+        Essential for the `with` keyword.
+        """
+        self._filehandler = open(self._filename,"r")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Same as __enter__ for context manager
+        """
+        self._filehandler.close()
 
 
 """ *******************************************************************************************************************
