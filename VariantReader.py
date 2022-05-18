@@ -82,12 +82,11 @@ class VariantReader:
 
 class VcfVariantReader(VariantReader):
     # Fixed column list as specified by the VCF documentation.
-    VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-    VCF_COL_IDX_MAP = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
-    VCF_HEADER_CHAR = '#'
-    VCF_COLUMN_SEP  = '\t'
-    VCF_GTYPE_SEP   = ':'
-
+    VCF_COLUMNS      = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    VCF_COL_IDX_MAP  = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
+    VCF_HEADER_START = '#'
+    VCF_COLUMN_SEP   = '\t'
+    VCF_GENOTYPE_SEP = ':'
 
     def __init__(self, filename: str) -> None:
         super().__init__(filename)
@@ -115,7 +114,7 @@ class VcfVariantReader(VariantReader):
         Deals with the first variant to avoid rewinding the filehandler.
         """
         while line := self._filehandler.readline():
-            if line.startswith( self.VCF_HEADER_CHAR ):
+            if line.startswith( self.VCF_HEADER_START ):
                 self._headerlines.append(line)
             else:
                 self._firstVariant = line
@@ -132,7 +131,7 @@ class VcfVariantReader(VariantReader):
         Finds and stores the VCF base column names and sample names.
         """
         self._headerColumns = self._headerlines[-1] \
-                                .lstrip( self.VCF_HEADER_CHAR ).strip() \
+                                .lstrip( self.VCF_HEADER_START ).strip() \
                                 .split ( self.VCF_COLUMN_SEP )
         self._sampleNames = self._headerColumns[ len(self.VCF_COLUMNS) : ]
 
@@ -179,7 +178,7 @@ class VcfVariantReader(VariantReader):
         """
         Maps the header's list of samples with the genotype from the provided list of genotype strings.
         """
-        return { str(sampleName): str(genotypeString.split( self.VCF_GTYPE_SEP ).pop(0))
+        return { str(sampleName): str(genotypeString.split( self.VCF_GENOTYPE_SEP ).pop(0))
                  for sampleName, genotypeString in zip(self._sampleNames, genotypeStrings)
                }
 
