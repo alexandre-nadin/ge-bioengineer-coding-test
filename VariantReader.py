@@ -78,7 +78,11 @@ class VariantReader:
         """
         self._filehandler.close()
 
+
 class VcfVariantReader(VariantReader):
+    # Ordered list as specified by the VCF docurmentation.
+    VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    VCF_HEADER_CHAR = '#'
 
     def __init__(self, filename: str) -> None:
         super().__init__(filename)
@@ -102,7 +106,9 @@ class VcfVariantReader(VariantReader):
         """
         while True:
             line = self._filehandler.readline()
-            if line.startswith('#'):
+            if not line: # EOF reached
+                break
+            if line.startswith( self.VCF_HEADER_CHAR ):
                 self._headerlines.append(line)
 
             else:
@@ -121,6 +127,18 @@ class VcfVariantReader(VariantReader):
         """
         return ''.join(self._headerlines)
 
+    def _readVariantLine(self) -> str:
+        """
+        Reads one single variant line at each call.
+        Deals with first buffered variant line.
+        Assumes the _filehandler has already passed the header with `self.pre()`
+        """
+        if self._firstVariant:
+            varline = self._firstVariant
+            self._firstVariant = None
+        else:
+            varline = self._filehandler.readline()
+        return varline
 
 """ *******************************************************************************************************************
 ****************************************  TESTS  **********************************************************************
