@@ -82,7 +82,7 @@ class VariantReader:
 
 class VcfVariantReader(VariantReader):
     # Fixed column list as specified by the VCF documentation.
-    VCF_COLUMNS      = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    VCF_COLUMNS      = ("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
     VCF_COL_IDX_MAP  = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
     VCF_HEADER_START = '#'
     VCF_COLUMN_SEP   = '\t'
@@ -90,7 +90,6 @@ class VcfVariantReader(VariantReader):
 
     def __init__(self, filename: str) -> None:
         super().__init__(filename)
-        self._firstVariant  = None
         self._headerlines   = []
         self._headerColumns = []
         self._sampleNames   = []
@@ -116,9 +115,9 @@ class VcfVariantReader(VariantReader):
         while line := self._filehandler.readline():
             if line.startswith( self.VCF_HEADER_START ):
                 self._headerlines.append(line)
-            else:
-                self._firstVariant = line
-                break
+                # If last header line
+                if line.startswith( self.VCF_COLUMNS[0] ):
+                    break
 
     def _validateHeader(self) -> None:
         """
@@ -149,12 +148,7 @@ class VcfVariantReader(VariantReader):
         :return: variant line
         :rtype str
         """
-        if self._firstVariant:
-            varline = self._firstVariant
-            self._firstVariant = None
-        else:
-            varline = self._filehandler.readline()
-        return varline
+        return self._filehandler.readline()
 
     def read(self) -> Variant:
         """
@@ -164,7 +158,7 @@ class VcfVariantReader(VariantReader):
         """
         while varline := self._readVariantLine():
             variantFields = varline.split( self.VCF_COLUMN_SEP )
-            variant = Variant(chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['CHROM'] ] ),
+            variant = Variant(chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['#CHROM'] ] ),
                               position  = int(variantFields[ self.VCF_COL_IDX_MAP['POS']   ] ),
                               reference = str(variantFields[ self.VCF_COL_IDX_MAP['REF']   ] ),
                               alternate = str(variantFields[ self.VCF_COL_IDX_MAP['ALT']   ] ),
