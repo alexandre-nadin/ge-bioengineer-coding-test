@@ -83,6 +83,9 @@ class VcfVariantReader(VariantReader):
     # Ordered list as specified by the VCF docurmentation.
     VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
     VCF_HEADER_CHAR = '#'
+    VCF_COLUMN_SEP  = '\t'
+    VCF_GTYPE_SEP   = ':'
+
 
     def __init__(self, filename: str) -> None:
         super().__init__(filename)
@@ -140,6 +143,44 @@ class VcfVariantReader(VariantReader):
             varline = self._filehandler.readline()
         return varline
 
+    def read(self) -> Variant:
+        """
+        This method reads one single Variant object each time is called.
+        :return: a Variant object each time the method is called while there remain variants to read in the file
+        :rtype Variant
+        """
+        while True:
+            varline = self._readVariantLine()
+            if not varline : print("EOF"); break
+
+            #yield(varline)
+            variantFields = varline.split( self.VCF_COLUMN_SEP )
+            print(f"len: {len(variantFields)}")
+            variant = Variant(
+                    chromosome= str(variantFields[ self.VCF_COLUMNS.index('CHROM') ] ),
+                    position  = int(variantFields[ self.VCF_COLUMNS.index('POS')   ] ),
+                    reference = str(variantFields[ self.VCF_COLUMNS.index('REF')   ] ),
+                    alternate = str(variantFields[ self.VCF_COLUMNS.index('ALT')   ] ),
+                    filter    = str(variantFields[ self.VCF_COLUMNS.index('FILTER')] ),
+                    info      = str(variantFields[ self.VCF_COLUMNS.index('INFO')  ] ),
+                    genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
+                    )
+            print(f"Variant: {variant} ({type(variant)} - {isinstance(variant, Variant)})")
+            yield(variant)
+
+    def getVariantGenotypesMap(self, *genotypeStrings):
+        """
+        Maps the header's list of samples with the genotype from the provided list of genotype strings.
+        """
+        hdrCols = self._headerlines[-1] \
+                    .lstrip( self.VCF_HEADER_CHAR ).strip() \
+                    .split ( self.VCF_COLUMN_SEP )
+        sampleNames = hdrCols[ len(self.VCF_COLUMNS) : ]
+        return { str(sampleName): str(genotypeString.split( self.VCF_GTYPE_SEP ).pop(0))
+                 for sampleName, genotypeString in zip(sampleNames, genotypeStrings)
+               }
+
+
 """ *******************************************************************************************************************
 ****************************************  TESTS  **********************************************************************
 ******************************************************************************************************************* """
@@ -153,7 +194,6 @@ with VcfVariantReader("test.vcf.gz") as vcf_variant_reader:
 assert len(variant_list) == 3
 # All three are Variant objects
 assert all([isinstance(variant, Variant) for variant in variant_list])
-
 
 def assert_contains(
     variant_list,
