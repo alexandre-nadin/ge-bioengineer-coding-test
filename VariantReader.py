@@ -58,6 +58,7 @@ class VariantReader:
         """
         This method can be implemented to perform some post-processing tasks once all variants in the file have been
         parsed. Might not be strictly necessary to implement if no post-processing actions are required.
+        File is already closed automatically and each Variant automatically removed through the iterator returned from the `read` method.
         """
         pass
 
@@ -147,9 +148,11 @@ class VcfVariantReader(VariantReader):
 
     def _readVariantLine(self) -> str:
         """
-        Reads one single variant line at each call.
+        Reads the next variant line in the vcf file.
         Deals with first buffered variant line.
         Assumes the _filehandler has already passed the header with `self.pre()`
+        :return: variant line
+        :rtype str
         """
         if self._firstVariant:
             varline = self._firstVariant
@@ -174,7 +177,6 @@ class VcfVariantReader(VariantReader):
                               info      = str(variantFields[ self.VCF_COL_IDX_MAP['INFO']  ] ),
                               genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
                       )
-            print(f"Variant: {variant} ({type(variant)} - {isinstance(variant, Variant)})")
             yield(variant)
 
     def getVariantGenotypesMap(self, *genotypeStrings):
