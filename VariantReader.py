@@ -82,6 +82,7 @@ class VariantReader:
 class VcfVariantReader(VariantReader):
     # Ordered list as specified by the VCF docurmentation.
     VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    VCF_COL_IDX_MAP = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
     VCF_HEADER_CHAR = '#'
     VCF_COLUMN_SEP  = '\t'
     VCF_GTYPE_SEP   = ':'
@@ -145,24 +146,20 @@ class VcfVariantReader(VariantReader):
 
     def read(self) -> Variant:
         """
-        This method reads one single Variant object each time is called.
+        Yields each single Variant object as an iterator.
         :return: a Variant object each time the method is called while there remain variants to read in the file
         :rtype Variant
         """
-        while True:
-            varline = self._readVariantLine()
-            if not varline : print("EOF"); break
-
-            #yield(varline)
+        while varline := self._readVariantLine():
             variantFields = varline.split( self.VCF_COLUMN_SEP )
             print(f"len: {len(variantFields)}")
             variant = Variant(
-                    chromosome= str(variantFields[ self.VCF_COLUMNS.index('CHROM') ] ),
-                    position  = int(variantFields[ self.VCF_COLUMNS.index('POS')   ] ),
-                    reference = str(variantFields[ self.VCF_COLUMNS.index('REF')   ] ),
-                    alternate = str(variantFields[ self.VCF_COLUMNS.index('ALT')   ] ),
-                    filter    = str(variantFields[ self.VCF_COLUMNS.index('FILTER')] ),
-                    info      = str(variantFields[ self.VCF_COLUMNS.index('INFO')  ] ),
+                    chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['CHROM'] ] ),
+                    position  = int(variantFields[ self.VCF_COL_IDX_MAP['POS']   ] ),
+                    reference = str(variantFields[ self.VCF_COL_IDX_MAP['REF']   ] ),
+                    alternate = str(variantFields[ self.VCF_COL_IDX_MAP['ALT']   ] ),
+                    filter    = str(variantFields[ self.VCF_COL_IDX_MAP['FILTER']] ),
+                    info      = str(variantFields[ self.VCF_COL_IDX_MAP['INFO']  ] ),
                     genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
                     )
             print(f"Variant: {variant} ({type(variant)} - {isinstance(variant, Variant)})")
