@@ -110,7 +110,6 @@ class VcfVariantReader(VariantReader):
         """
         Stores the header.
         Assumes the header rigorously precedes the variants.
-        Deals with the first variant to avoid rewinding the filehandler.
         """
         while line := self._filehandler.readline():
             if line.startswith( self.VCF_HEADER_START ):
@@ -143,7 +142,6 @@ class VcfVariantReader(VariantReader):
     def _readVariantLine(self) -> str:
         """
         Reads the next variant line in the vcf file.
-        Deals with first buffered variant line.
         Assumes the _filehandler has already passed the header with `self.pre()`
         :return: variant line
         :rtype str
