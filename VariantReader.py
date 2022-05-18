@@ -25,6 +25,8 @@ from abc import abstractmethod
 from variantschema_pb2 import Variant
 import gzip
 
+GZIP_EXTENSIONS = ('.gz', '.gzip')
+
 class VariantReader:
     """
     A VariantReader will enable to read Variant objects from specific file formats
@@ -64,7 +66,7 @@ class VariantReader:
         Implemented context manager as described by the doc: https://docs.python.org/2/reference/datamodel.html#with-statement-context-managers
         Essential for the `with` keyword.
         """
-        if self._filename.endswith('.gz') or self._filename.endswith('.gzip'):
+        if list(filter(self._filename.endswith, GZIP_EXTENSIONS)):
             self._filehandler = gzip.open(self._filename, "rt", encoding='utf8')
         else:
             self._filehandler = open(self._filename, "r", encoding='utf8')
