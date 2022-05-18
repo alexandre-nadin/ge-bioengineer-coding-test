@@ -114,13 +114,9 @@ class VcfVariantReader(VariantReader):
         Assumes the header rigorously precedes the variants.
         Deals with the first variant to avoid rewinding the filehandler.
         """
-        while True:
-            line = self._filehandler.readline()
-            if not line: # EOF reached
-                break
+        while line := self._filehandler.readline():
             if line.startswith( self.VCF_HEADER_CHAR ):
                 self._headerlines.append(line)
-
             else:
                 self._firstVariant = line
                 break
