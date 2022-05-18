@@ -9,18 +9,20 @@ dependencies:
   - _openmp_mutex=4.5=2_gnu
   - bzip2=1.0.8=h7b6447c_0
   - ca-certificates=2022.4.26=h06a4308_0
+  - gzip=1.11=h7f98852_0
   - ld_impl_linux-64=2.36.1=hea4e1c9_2
-  - libffi=3.3=he6710b0_2
+  - libffi=3.4.2=h7f98852_5
   - libgcc-ng=12.1.0=h8d9b700_16
   - libgomp=12.1.0=h8d9b700_16
+  - libnsl=2.0.0=h7f98852_0
   - libprotobuf=3.20.1=h6239696_0
   - libstdcxx-ng=12.1.0=ha89aaad_16
-  - libuuid=1.0.3=h7f8727e_2
+  - libuuid=2.32.1=h14c3975_1000
   - libzlib=1.2.11=h166bdaf_1014
   - ncurses=6.3=h7f8727e_2
-  - openssl=1.1.1o=h166bdaf_0
+  - openssl=3.0.3=h166bdaf_0
   - pip=22.1=pyhd8ed1ab_0
-  - python=3.10.4=h12debd9_0
+  - python=3.10.4=h2660328_0_cpython
   - python_abi=3.10=2_cp310
   - readline=8.1.2=h7f8727e_1
   - six=1.16.0=pyhd3eb1b0_1

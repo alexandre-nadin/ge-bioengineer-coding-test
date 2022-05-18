@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Write an specialization of the VariantReader abstract class that is able to read genomic variants from a VCF file:
   * The name of the new class must be VcfVariantReader
@@ -22,6 +23,9 @@ Write an specialization of the VariantReader abstract class that is able to read
 """
 from abc import abstractmethod
 from variantschema_pb2 import Variant
+import gzip
+
+GZIP_EXTENSIONS = ('.gz', '.gzip')
 
 class VariantReader:
     """
@@ -29,7 +33,8 @@ class VariantReader:
     """
 
     def __init__(self, filename: str) -> None:
-        self._filename = filename
+        self._filename    = filename
+        self._filehandler = None
 
     @abstractmethod
     def pre(self) -> None:
@@ -53,9 +58,134 @@ class VariantReader:
         """
         This method can be implemented to perform some post-processing tasks once all variants in the file have been
         parsed. Might not be strictly necessary to implement if no post-processing actions are required.
+        File is already closed automatically and each Variant automatically removed through the iterator returned from the `read` method.
         """
         pass
 
+    def __enter__(self):
+        """
+        Implemented context manager as described by the doc: https://docs.python.org/2/reference/datamodel.html#with-statement-context-managers
+        Essential for the `with` keyword.
+        """
+        if list(filter(self._filename.endswith, GZIP_EXTENSIONS)):
+            self._filehandler = gzip.open(self._filename, "rt", encoding='utf8')
+        else:
+            self._filehandler = open(self._filename, "r", encoding='utf8')
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Same as __enter__ for context manager
+        """
+        self._filehandler.close()
+
+
+class VcfVariantReader(VariantReader):
+    # Ordered list as specified by the VCF docurmentation.
+    VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+    VCF_COL_IDX_MAP = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
+    VCF_HEADER_CHAR = '#'
+    VCF_COLUMN_SEP  = '\t'
+    VCF_GTYPE_SEP   = ':'
+
+
+    def __init__(self, filename: str) -> None:
+        super().__init__(filename)
+        self._firstVariant  = None
+        self._headerlines   = []
+        self._headerColumns = []
+        self._sampleNames   = []
+
+    def pre(self) -> None:
+        """
+        Reads the header and stores it for the header() method, although not necessary for this test.
+        Advances the file handler to the first variant.
+        Validates the header, althouth not necessary for this test.
+        Processes the columns metadata.
+        """
+        self._readHeader()
+        self._validateHeader()
+        self._processHeaderColumns()
+
+
+    def _readHeader(self) -> None:
+        """
+        Stores the header.
+        Assumes the header rigorously precedes the variants.
+        Deals with the first variant to avoid rewinding the filehandler.
+        """
+        while True:
+            line = self._filehandler.readline()
+            if not line: # EOF reached
+                break
+            if line.startswith( self.VCF_HEADER_CHAR ):
+                self._headerlines.append(line)
+
+            else:
+                self._firstVariant = line
+                break
+
+    def _validateHeader(self) -> None:
+        """
+        Assumes the header is well formed
+        """
+        pass
+
+    def _processHeaderColumns(self) -> None:
+        """
+        Finds and stores the VCF base column names and sample names.
+        """
+        self._headerColumns = self._headerlines[-1] \
+                                .lstrip( self.VCF_HEADER_CHAR ).strip() \
+                                .split ( self.VCF_COLUMN_SEP )
+        self._sampleNames = self._headerColumns[ len(self.VCF_COLUMNS) : ]
+
+    def header(self) -> str:
+        """
+        Returns the VCF header as a string
+        """
+        return ''.join(self._headerlines)
+
+    def _readVariantLine(self) -> str:
+        """
+        Reads the next variant line in the vcf file.
+        Deals with first buffered variant line.
+        Assumes the _filehandler has already passed the header with `self.pre()`
+        :return: variant line
+        :rtype str
+        """
+        if self._firstVariant:
+            varline = self._firstVariant
+            self._firstVariant = None
+        else:
+            varline = self._filehandler.readline()
+        return varline
+
+    def read(self) -> Variant:
+        """
+        Yields each single Variant object as an iterator.
+        :return: a Variant object each time the method is called while there remain variants to read in the file
+        :rtype Variant
+        """
+        while varline := self._readVariantLine():
+            variantFields = varline.split( self.VCF_COLUMN_SEP )
+            variant = Variant(chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['CHROM'] ] ),
+                              position  = int(variantFields[ self.VCF_COL_IDX_MAP['POS']   ] ),
+                              reference = str(variantFields[ self.VCF_COL_IDX_MAP['REF']   ] ),
+                              alternate = str(variantFields[ self.VCF_COL_IDX_MAP['ALT']   ] ),
+                              filter    = str(variantFields[ self.VCF_COL_IDX_MAP['FILTER']] ),
+                              info      = str(variantFields[ self.VCF_COL_IDX_MAP['INFO']  ] ),
+                              genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
+                      )
+            yield(variant)
+
+    def getVariantGenotypesMap(self, *genotypeStrings):
+        """
+        Maps the header's list of samples with the genotype from the provided list of genotype strings.
+        """
+        return { str(sampleName): str(genotypeString.split( self.VCF_GTYPE_SEP ).pop(0))
+                 for sampleName, genotypeString in zip(self._sampleNames, genotypeStrings)
+               }
 
 """ *******************************************************************************************************************
 ****************************************  TESTS  **********************************************************************
@@ -70,7 +200,6 @@ with VcfVariantReader("test.vcf.gz") as vcf_variant_reader:
 assert len(variant_list) == 3
 # All three are Variant objects
 assert all([isinstance(variant, Variant) for variant in variant_list])
-
 
 def assert_contains(
     variant_list,
