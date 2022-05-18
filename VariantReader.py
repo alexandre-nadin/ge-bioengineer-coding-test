@@ -81,7 +81,7 @@ class VariantReader:
 
 
 class VcfVariantReader(VariantReader):
-    # Ordered list as specified by the VCF docurmentation.
+    # Fixed column list as specified by the VCF documentation.
     VCF_COLUMNS     = ("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
     VCF_COL_IDX_MAP = { colname: index for index, colname in enumerate(VCF_COLUMNS) }
     VCF_HEADER_CHAR = '#'
