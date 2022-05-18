@@ -90,17 +90,22 @@ class VcfVariantReader(VariantReader):
 
     def __init__(self, filename: str) -> None:
         super().__init__(filename)
-        self._firstVariant = None
-        self._headerlines = []
+        self._firstVariant  = None
+        self._headerlines   = []
+        self._headerColumns = []
+        self._sampleNames   = []
 
     def pre(self) -> None:
         """
         Reads the header and stores it for the header() method, although not necessary for this test.
-        Real use here is to advance the file handler to the first variant.
-        Assumes the VCF is well 
+        Advances the file handler to the first variant.
+        Validates the header, althouth not necessary for this test.
+        Processes the columns metadata.
         """
         self._readHeader()
         self._validateHeader()
+        self._processHeaderColumns()
+
 
     def _readHeader(self) -> None:
         """
@@ -124,6 +129,15 @@ class VcfVariantReader(VariantReader):
         Assumes the header is well formed
         """
         pass
+
+    def _processHeaderColumns(self) -> None:
+        """
+        Finds and stores the VCF base column names and sample names.
+        """
+        self._headerColumns = self._headerlines[-1] \
+                                .lstrip( self.VCF_HEADER_CHAR ).strip() \
+                                .split ( self.VCF_COLUMN_SEP )
+        self._sampleNames = self._headerColumns[ len(self.VCF_COLUMNS) : ]
 
     def header(self) -> str:
         """
@@ -152,16 +166,14 @@ class VcfVariantReader(VariantReader):
         """
         while varline := self._readVariantLine():
             variantFields = varline.split( self.VCF_COLUMN_SEP )
-            print(f"len: {len(variantFields)}")
-            variant = Variant(
-                    chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['CHROM'] ] ),
-                    position  = int(variantFields[ self.VCF_COL_IDX_MAP['POS']   ] ),
-                    reference = str(variantFields[ self.VCF_COL_IDX_MAP['REF']   ] ),
-                    alternate = str(variantFields[ self.VCF_COL_IDX_MAP['ALT']   ] ),
-                    filter    = str(variantFields[ self.VCF_COL_IDX_MAP['FILTER']] ),
-                    info      = str(variantFields[ self.VCF_COL_IDX_MAP['INFO']  ] ),
-                    genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
-                    )
+            variant = Variant(chromosome= str(variantFields[ self.VCF_COL_IDX_MAP['CHROM'] ] ),
+                              position  = int(variantFields[ self.VCF_COL_IDX_MAP['POS']   ] ),
+                              reference = str(variantFields[ self.VCF_COL_IDX_MAP['REF']   ] ),
+                              alternate = str(variantFields[ self.VCF_COL_IDX_MAP['ALT']   ] ),
+                              filter    = str(variantFields[ self.VCF_COL_IDX_MAP['FILTER']] ),
+                              info      = str(variantFields[ self.VCF_COL_IDX_MAP['INFO']  ] ),
+                              genotypes = self.getVariantGenotypesMap( *variantFields[ len(self.VCF_COLUMNS) : ] )
+                      )
             print(f"Variant: {variant} ({type(variant)} - {isinstance(variant, Variant)})")
             yield(variant)
 
@@ -169,14 +181,9 @@ class VcfVariantReader(VariantReader):
         """
         Maps the header's list of samples with the genotype from the provided list of genotype strings.
         """
-        hdrCols = self._headerlines[-1] \
-                    .lstrip( self.VCF_HEADER_CHAR ).strip() \
-                    .split ( self.VCF_COLUMN_SEP )
-        sampleNames = hdrCols[ len(self.VCF_COLUMNS) : ]
         return { str(sampleName): str(genotypeString.split( self.VCF_GTYPE_SEP ).pop(0))
-                 for sampleName, genotypeString in zip(sampleNames, genotypeStrings)
+                 for sampleName, genotypeString in zip(self._sampleNames, genotypeStrings)
                }
-
 
 """ *******************************************************************************************************************
 ****************************************  TESTS  **********************************************************************
